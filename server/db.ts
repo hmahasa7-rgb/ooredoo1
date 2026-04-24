@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, paymentTransactions, InsertPaymentTransaction, adminUsers, InsertAdminUser } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,90 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * Payment transaction functions
+ */
+
+export async function createPaymentTransaction(transaction: InsertPaymentTransaction) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create transaction: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(paymentTransactions).values(transaction);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to create transaction:", error);
+    throw error;
+  }
+}
+
+export async function getPaymentTransactions() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get transactions: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(paymentTransactions).orderBy(paymentTransactions.createdAt);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get transactions:", error);
+    return [];
+  }
+}
+
+export async function deletePaymentTransaction(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete transaction: database not available");
+    return false;
+  }
+
+  try {
+    await db.delete(paymentTransactions).where(eq(paymentTransactions.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Failed to delete transaction:", error);
+    return false;
+  }
+}
+
+/**
+ * Admin user functions
+ */
+
+export async function createAdminUser(admin: InsertAdminUser) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create admin: database not available");
+    return null;
+  }
+
+  try {
+    const result = await db.insert(adminUsers).values(admin);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to create admin:", error);
+    throw error;
+  }
+}
+
+export async function getAdminByUsername(username: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get admin: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db.select().from(adminUsers).where(eq(adminUsers.username, username)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to get admin:", error);
+    return undefined;
+  }
+}
